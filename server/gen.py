@@ -1,10 +1,27 @@
+import redis
+from redis.commands.search.field import TextField, NumericField, TagField
+from redis.commands.search.indexDefinition import IndexDefinition
 from bs4 import BeautifulSoup
 from colorama import *
 import os
 import sys
 import requests
 import re
-import json
+import time
+
+# setup and connect to redis and the database
+RedisDB = redis.StrictRedis(host="host", 
+                            port=0,
+                            username="username",
+                            password="password",
+)
+# crate a schema for the comic's data
+schema = (TextField("title"),
+            TextField("comic_link"),
+            TagField("characters"),
+            TextField("image"),
+            NumericField("index", sortable=True)
+)
 
 init(wrap=False)
 stream = AnsiToWin32(sys.stderr).stream
@@ -14,15 +31,28 @@ user_agent = {'user-agent': ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5)'
                              'Chrome/45.0.2454.101 Safari/537.36'),
                              'referer': 'https://www.housepetscomic.com'}
 
-years = ['2008', "2009", "2010", "2011", "2012", "2013", "2014",
-        "2015", "2016", "2017", "2018", "2019", "2020", "2021", "2022"]
+# generate a list of years from 2008 to todays year
+years = [str(x) for x in range(2008, int(time.strftime("%Y"))+1)]
 
 housepets_db = {}
 print(f"{Back.YELLOW}{Fore.LIGHTWHITE_EX}{Style.BRIGHT} Generating Housepets database... {Style.RESET_ALL}")
 
 characters_db = set()
+
 for year in years:
-    housepets_db.update({year: []})
+    # create an index for the comics pecific year
+    index_def = IndexDefinition(
+        prefix = [f"{year}:"],
+        score = 0.5,
+        score_field = "doc_score"
+    )
+
+    try:
+        print(f"{Back.YELLOW}{Fore.LIGHTWHITE_EX}{Style.BRIGHT} Setting up {year} index... {Style.RESET_ALL}")
+        RedisDB.ft(f"{year}").create_index(schema, definition=index_def)
+    except:
+        print(f"{Back.RED}{Fore.LIGHTWHITE_EX}{Style.BRIGHT} {year} index already exists {Style.RESET_ALL}")
+
     print(f"Searching in year {Fore.GREEN}{Style.BRIGHT}{year}{Style.RESET_ALL}")
 
     web = requests.get(f"https://www.housepetscomic.com/archive/?archive_year={year}", headers=user_agent, timeout=None)
@@ -30,7 +60,7 @@ for year in years:
     link_tag = soup.find_all('a', {'rel':"bookmark", 'href': re.compile("^https://")})
     print(f"Found {Fore.GREEN}{Style.BRIGHT}{len(link_tag)}{Style.RESET_ALL} tags!")
 
-    for link in link_tag:
+    for index, link in enumerate(link_tag, start=1):
         link = link.get('href')
         link_page = requests.get(link, headers=user_agent, timeout=None)
         if "https://www.housepetscomic.com/character" in link_page.text:
@@ -46,17 +76,18 @@ for year in years:
             comic_image = comic_soup.find('img', {'title': True, 'alt': True})
 
             print(comic_image.get('src'))
-            housepets_db[year].append({
+            link_title = link.split("/")[-2]
+
+            print(link_title)
+            RedisDB.hset(f"{year}:{link_title}", mapping={
                 'title':comic_soup.title.text.split(' \u2013 ')[0], # The character "u\u2013" is the unicode for the dash
                 'comic_link': link,
-                'characters': characters,
-                'image': comic_image.get('src')
+                'characters': ",".join(characters),
+                'image': comic_image.get('src'),
+                'index': index
                 })
         else:
             print(f'{Fore.BLACK}{Back.LIGHTWHITE_EX}{Style.BRIGHT}{link} is a guest comics{Style.RESET_ALL}')
 
-housepets_db['characters_db'] = list(characters_db)
-print("Saving to database...")
-
-with open('housepets_db.json', 'w') as housepets_db_json:
-    json.dump(housepets_db, housepets_db_json)
+# put the character list into redis
+RedisDB.lpush("characters_db", *characters_db)

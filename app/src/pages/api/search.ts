@@ -1,3 +1,4 @@
+import { searchComics } from '../../../lib/redis'
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { resolve } from 'path'
 
@@ -6,15 +7,9 @@ export default function handler(
   res: NextApiResponse<string>
 ) {
   const sendData = (async () => {
-    const response = await fetch('http://localhost:5000/search', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(req.body),
-    })
-    const json = await response.json()
-    res.status(200).json(json)
+    let comics = await searchComics(req.body.years, req.body.characters)
+    console.log(comics)
+    res.status(200).json(JSON.stringify(comics))
     resolve()
   })()
 }

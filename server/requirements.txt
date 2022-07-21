@@ -5,3 +5,4 @@ colorama
 yapf
 fastapi
 uvicorn
+redis

@@ -5,9 +5,11 @@ declare global {
 }
 
 export const pageview = (url: any) => {
-  window.gtag("config", process.env.GA, {
-    page_path: url,
-  })
+  if (window && window.gtag) {
+    window.gtag("config", process.env.GA, {
+      page_path: url,
+    })
+  }
 }
 
 export const event = ({ action, params }) => {

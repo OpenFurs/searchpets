@@ -5,6 +5,9 @@ const nextConfig = {
   compiler: {
     removeConsole: true,
   },
+  webpack: {
+    optimizeCSS: true,
+  },
   images: {
     domains: ['www.housepetscomic.com']
   },

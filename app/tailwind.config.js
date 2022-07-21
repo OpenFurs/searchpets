@@ -1,16 +1,14 @@
+const defaultTheme = require('tailwindcss/defaultTheme')
+
 module.exports = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx}",
     "./src/components/**/*.{js,ts,jsx,tsx}",
   ],
-  experimental: {
-    // Remove unused Tailwind variables
-    optimizeUniversalDefaults: true, 
-  },
   theme: {
     fontFamily: {
-      'open-sans': ['Open Sans', 'sans-serif'],
-      'montserrat': ['Montserrat', 'sans-serif'],
+      'open-sans': ["Open Sans", ...defaultTheme.fontFamily.sans],
+      'inter': ['Inter', ...defaultTheme.fontFamily.sans],
     },
     extend: {
       borderRadius: {

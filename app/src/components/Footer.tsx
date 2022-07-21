@@ -33,7 +33,7 @@ export default function Footer() {
               Rick Griffin. All rights reserved.
             </p>
             <p className="mt-[0.55rem]">
-              Updated June 2022
+              Updated July 2022
             </p>
           </section>
           <div className="flex sm:flex-col flex-row items-start justify-center gap-4 sm:gap-0">

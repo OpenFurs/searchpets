@@ -1,6 +1,5 @@
 {
-  "name": "searchpets",
-  "description": "A search engine to find your favorite Housepets comic!",
+  "private": true,
   "scripts": {
     "dev": "concurrently -n next,python -k \"npm run dev:next\" \"npm run server:dev\"",
     "build": "concurrently -n next,python -k \"yarn --cwd ./app build\" \"yarn server:dev\"",
